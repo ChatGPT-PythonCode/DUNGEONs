@@ -22,13 +22,13 @@ const TILE = {
 };
 
 const MONSTER_TEMPLATES = {
-  Brute: { hp: 30, attack: 8, xp: 22, color: "#ff6b6b", aggro: 7, lose: 12 },
-  Rogue: { hp: 20, attack: 7, xp: 24, color: "#f8c471", aggro: 8, lose: 13 },
-  Stalker: { hp: 24, attack: 9, xp: 28, color: "#bb8fce", aggro: 9, lose: 14 }
+  Brute: { hp: 26, attack: 7, xp: 18, color: "#ff6b6b" },
+  Rogue: { hp: 18, attack: 6, xp: 22, color: "#f8c471" },
+  Stalker: { hp: 22, attack: 8, xp: 26, color: "#bb8fce" }
 };
 
 class WorldGenerator {
-  constructor(seed = 2026, size = 36) {
+  constructor(seed = 2026, size = 32) {
     this.seed = seed;
     this.size = size;
     this.cache = new Map();
@@ -45,14 +45,12 @@ class WorldGenerator {
     const rng = new RNG((this.seed + dungeonId * 7919) >>> 0);
     const map = Array.from({ length: this.size }, () => Array(this.size).fill(TILE.WALL));
 
-    const rooms = this.carveRooms(map, rng);
-    this.connectRooms(map, rooms, rng);
-    this.carveBranchPassages(map, rng);
-
-    const spawn = { ...rooms[0].center };
-    this.removeDisconnectedPockets(map, spawn);
+    const start = { x: rng.int(2, this.size - 3), y: rng.int(2, this.size - 3) };
+    this.carveConnectedCavern(map, start, rng);
+    this.removeDisconnectedPockets(map, start);
 
     const walkables = this.collectCells(map, v => v === TILE.FLOOR);
+    const spawn = walkables[rng.int(0, walkables.length - 1)] || start;
 
     const warpAId = dungeonId + rng.int(1, 9);
     let warpBId = rng.next() < 0.35 ? Math.max(0, dungeonId - rng.int(1, 6)) : dungeonId + rng.int(10, 20);
@@ -64,7 +62,7 @@ class WorldGenerator {
     map[warpB.y][warpB.x] = TILE.WARP_B;
 
     const monsters = [];
-    const monsterCount = rng.int(16, 28);
+    const monsterCount = rng.int(14, 24);
     const types = Object.keys(MONSTER_TEMPLATES);
     for (let i = 0; i < monsterCount; i++) {
       const kind = rng.pick(types);
@@ -73,6 +71,8 @@ class WorldGenerator {
       if (!pos || map[pos.y][pos.x] !== TILE.FLOOR) continue;
       if (this.manhattan(pos, spawn) < 7) continue;
 
+      if (!pos || (pos.x === spawn.x && pos.y === spawn.y)) continue;
+      if (map[pos.y][pos.x] !== TILE.FLOOR) continue;
       monsters.push({
         id: `${dungeonId}-${i}`,
         kind,
@@ -184,6 +184,16 @@ class WorldGenerator {
   carveBranchPassages(map, rng) {
     const starts = this.collectCells(map, v => v === TILE.FLOOR);
     const dirs = [
+  carveConnectedCavern(map, start, rng) {
+    let x = start.x;
+    let y = start.y;
+    map[y][x] = TILE.FLOOR;
+
+    const totalCells = (this.size - 2) * (this.size - 2);
+    const targetFloor = Math.floor(totalCells * 0.52);
+    let carved = 1;
+
+    const directions = [
       { x: 1, y: 0 },
       { x: -1, y: 0 },
       { x: 0, y: 1 },
@@ -200,6 +210,29 @@ class WorldGenerator {
         const ny = Math.max(1, Math.min(this.size - 2, current.y + d.y));
         map[ny][nx] = TILE.FLOOR;
         current = { x: nx, y: ny };
+    while (carved < targetFloor) {
+      const dir = rng.pick(directions);
+      const nx = Math.max(1, Math.min(this.size - 2, x + dir.x));
+      const ny = Math.max(1, Math.min(this.size - 2, y + dir.y));
+
+      x = nx;
+      y = ny;
+      if (map[y][x] === TILE.WALL) {
+        map[y][x] = TILE.FLOOR;
+        carved += 1;
+      }
+
+      if (rng.next() < 0.08) {
+        const width = rng.int(2, 4);
+        const height = rng.int(2, 4);
+        for (let yy = Math.max(1, y - height); yy <= Math.min(this.size - 2, y + height); yy++) {
+          for (let xx = Math.max(1, x - width); xx <= Math.min(this.size - 2, x + width); xx++) {
+            if (map[yy][xx] === TILE.WALL) {
+              map[yy][xx] = TILE.FLOOR;
+              carved += 1;
+            }
+          }
+        }
       }
     }
   }
@@ -253,6 +286,7 @@ class WorldGenerator {
     let bestDist = -1;
     for (const c of cells) {
       const dist = this.manhattan(c, from);
+      const dist = Math.abs(c.x - from.x) + Math.abs(c.y - from.y);
       if (dist > bestDist) {
         bestDist = dist;
         best = c;
@@ -279,6 +313,17 @@ class Game {
       attack: 11,
       skills: []
     };
+    this.world = new WorldGenerator(seed, 32);
+    this.player = {
+      hp: 120,
+      maxHp: 120,
+      level: 1,
+      xp: 0,
+      xpToNext: 40,
+      attack: 10,
+      skills: []
+    };
+    this.dungeonId = 0;
     this.log = ["Entered dungeon 0."];
     this.loadDungeon(0);
   }
@@ -363,6 +408,15 @@ class Game {
     const candidates = this.dungeon.monsters
       .filter(m => m.hp > 0)
       .map(m => ({ monster: m, dist: this.manhattan(m, this.playerPos) }))
+  attackAction() {
+    if (this.player.hp <= 0) return;
+
+    const candidates = this.dungeon.monsters
+      .filter(m => m.hp > 0)
+      .map(m => ({
+        monster: m,
+        dist: Math.abs(m.x - this.playerPos.x) + Math.abs(m.y - this.playerPos.y)
+      }))
       .filter(item => item.dist === 1)
       .sort((a, b) => a.monster.hp - b.monster.hp);
 
@@ -447,6 +501,13 @@ class Game {
 
       if (dist === 1 && m.mode !== "idle" && adjacentAttackers < maxAdjacentAttackers) {
         adjacentAttackers += 1;
+    const occupied = new Set(this.dungeon.monsters.map(m => `${m.x},${m.y}`));
+
+    for (const m of this.dungeon.monsters) {
+      if (m.hp <= 0) continue;
+      const dist = Math.abs(m.x - this.playerPos.x) + Math.abs(m.y - this.playerPos.y);
+
+      if (dist === 1) {
         let dmg = m.attack;
         if (this.player.skills.includes("Battle Trance") && this.rng.next() < 0.15) dmg = Math.max(1, dmg - 4);
         this.player.hp -= dmg;
@@ -461,6 +522,15 @@ class Game {
       m.x = next.x;
       m.y = next.y;
       occupied.add(`${m.x},${m.y}`);
+      const target = this.monsterTarget(m, dist);
+      const next = this.stepToward(m.x, m.y, target.x, target.y);
+      const key = `${next.x},${next.y}`;
+      if (this.isWalkable(next.x, next.y) && !occupied.has(key) && !(next.x === this.playerPos.x && next.y === this.playerPos.y)) {
+        occupied.delete(`${m.x},${m.y}`);
+        m.x = next.x;
+        m.y = next.y;
+        occupied.add(key);
+      }
     }
 
     if (this.player.skills.includes("Regeneration") && this.rng.next() < 0.25 && this.player.hp > 0) {
@@ -542,6 +612,30 @@ class Game {
       { x, y: y + 1 },
       { x, y: y - 1 }
     ];
+  monsterTarget(m, dist) {
+    if (m.kind === "Brute") {
+      return { x: this.playerPos.x, y: this.playerPos.y };
+    }
+    if (m.kind === "Rogue") {
+      return {
+        x: this.playerPos.x + (m.x <= this.playerPos.x ? 1 : -1),
+        y: this.playerPos.y
+      };
+    }
+    if (dist <= 3) return { x: this.playerPos.x, y: this.playerPos.y };
+    return {
+      x: this.playerPos.x,
+      y: this.playerPos.y + (m.y <= this.playerPos.y ? 1 : -1)
+    };
+  }
+
+  stepToward(x, y, tx, ty) {
+    const dx = tx > x ? 1 : tx < x ? -1 : 0;
+    const dy = ty > y ? 1 : ty < y ? -1 : 0;
+    if (Math.abs(tx - x) >= Math.abs(ty - y)) {
+      return { x: x + dx, y };
+    }
+    return { x, y: y + dy };
   }
 }
 
@@ -566,6 +660,12 @@ function draw() {
       if (tile === TILE.WARP_B) ctx.fillStyle = "#8e44ad";
       ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
       ctx.strokeStyle = "#090c12";
+      if (tile === TILE.WALL) ctx.fillStyle = "#11131a";
+      if (tile === TILE.FLOOR) ctx.fillStyle = "#1d2738";
+      if (tile === TILE.WARP_A) ctx.fillStyle = "#2e86de";
+      if (tile === TILE.WARP_B) ctx.fillStyle = "#8e44ad";
+      ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+      ctx.strokeStyle = "#0b0f18";
       ctx.strokeRect(x * tileSize, y * tileSize, tileSize, tileSize);
     }
   }
@@ -575,6 +675,7 @@ function draw() {
     ctx.fillStyle = MONSTER_TEMPLATES[m.kind].color;
     ctx.beginPath();
     ctx.arc((m.x + 0.5) * tileSize, (m.y + 0.5) * tileSize, tileSize * 0.26, 0, Math.PI * 2);
+    ctx.arc((m.x + 0.5) * tileSize, (m.y + 0.5) * tileSize, tileSize * 0.28, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -601,6 +702,7 @@ function renderInfo() {
     <p><strong>Warp A:</strong> ${warpA.id} (${warpA.x},${warpA.y})</p>
     <p><strong>Warp B:</strong> ${warpB.id} (${warpB.x},${warpB.y})</p>
     <p class="subtle">Arrows move. Space attacks. Shift/ESCAPE evades.</p>
+    <p class="subtle">Arrow keys move. Space attacks adjacent enemy.</p>
   `;
 
   logEl.innerHTML = game.log.slice(0, 24).map(line => `<li>${line}</li>`).join("");
@@ -652,6 +754,10 @@ document.getElementById("escape-btn").addEventListener("click", escapeByInput);
 document.addEventListener("keydown", event => {
   const key = event.key.toLowerCase();
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "space", "shift", "w", "a", "s", "d"].includes(key)) {
+
+document.addEventListener("keydown", event => {
+  const key = event.key.toLowerCase();
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "space", "w", "a", "s", "d"].includes(key)) {
     event.preventDefault();
   }
   if (key === "arrowup" || key === "w") moveByInput(0, -1);

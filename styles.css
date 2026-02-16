@@ -93,19 +93,13 @@ button {
 
 button:hover { border-color: var(--accent); }
 
-button.attack,
-button.escape {
+button.attack {
   width: 100%;
   font-weight: 600;
   letter-spacing: 0.02em;
   min-height: 2.8rem;
   background: #3a223a;
   border-color: #8e44ad;
-}
-
-button.escape {
-  background: #1f3a2b;
-  border-color: #2e8b57;
 }
 
 .info-panel {
