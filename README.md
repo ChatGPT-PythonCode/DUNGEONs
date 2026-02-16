@@ -1,45 +1,36 @@
-# Never-Ending Dungeon Explorer (Static Web App)
+# Never-Ending Dungeon Explorer (Top-Down Static Web Game)
 
-A browser-based endless dungeon prototype that runs fully on a static site (no backend).
+A fully client-side top-down dungeon crawler that can be hosted on any static site provider.
 
-## What it does
+## Gameplay
 
-- Procedurally generates an unbounded chain of dungeons.
-- Every dungeon has exactly **2 warps** to other dungeons.
-- Spawns multiple monster types with different behaviors:
-  - **Brute**: direct chase pressure.
-  - **Rogue**: flanking movement.
-  - **Stalker**: long-range flank, close-range chase.
-- Player progression includes:
-  - XP gain on monster defeat.
-  - Level ups that increase stats.
-  - Skill unlocks (power-up style abilities).
+- Procedurally generated **dungeon maps** with walls and walkable floors.
+- Player movement with **WASD / Arrow keys** and on-screen controls.
+- Exactly **2 warp gates per dungeon**, each linking to another generated dungeon.
+- Multiple smart monster types:
+  - **Brute**: direct chaser.
+  - **Rogue**: flank behavior.
+  - **Stalker**: flank at range, chase at close distance.
+- Turn-based combat while moving through the map.
+- Player progression:
+  - XP and leveling.
+  - Stat growth (HP/ATK).
+  - Power-up skills (Power Strike, Blink, Arc Burst, Battle Trance, Regeneration).
 
 ## Run locally
-
-Because this is a static site, any simple file server works.
 
 ```bash
 python -m http.server 4173
 ```
 
-Then open:
+Open `http://localhost:4173`.
 
-```text
-http://localhost:4173
-```
+## Static hosting
 
-## Deploy to static hosting
-
-This project can be hosted directly on:
-
-- GitHub Pages
-- Netlify
-- Vercel (static mode)
-- Cloudflare Pages
-
-No build step is required; deploy these files as-is:
+Deploy these files directly with no build step:
 
 - `index.html`
 - `styles.css`
 - `app.js`
+
+Compatible with GitHub Pages, Netlify, Cloudflare Pages, and Vercel static hosting.
