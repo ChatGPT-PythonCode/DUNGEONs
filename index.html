@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Never-Ending Dungeon Explorer</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <h1>Never-Ending Dungeon Explorer</h1>
+        <p>Top-down procedural dungeon crawler. Move with <strong>Arrow Keys</strong> and attack with <strong>Space</strong>.</p>
+      </header>
+
+      <section class="layout">
+        <article class="panel map-panel">
+          <canvas id="game-canvas" width="640" height="640" aria-label="Dungeon map"></canvas>
+          <div class="controls" aria-label="mobile controls">
+            <button id="up-btn" aria-label="move up">↑</button>
+            <div>
+              <button id="left-btn" aria-label="move left">←</button>
+              <button id="down-btn" aria-label="move down">↓</button>
+              <button id="right-btn" aria-label="move right">→</button>
+            </div>
+            <button id="attack-btn" class="attack" aria-label="attack">SPACE / ATTACK</button>
+          </div>
+        </article>
+
+        <article class="panel info-panel">
+          <section id="player-stats"></section>
+          <section id="dungeon-card"></section>
+          <section>
+            <h2>Combat Log</h2>
+            <ul id="log"></ul>
+          </section>
+        </article>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
