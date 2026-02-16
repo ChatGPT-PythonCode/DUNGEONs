@@ -10,19 +10,20 @@
     <main class="app">
       <header>
         <h1>Never-Ending Dungeon Explorer</h1>
-        <p>Top-down procedural dungeon crawler. Move with <strong>WASD / Arrow Keys</strong>.</p>
+        <p>Top-down procedural dungeon crawler. Move with <strong>Arrow Keys</strong> and attack with <strong>Space</strong>.</p>
       </header>
 
       <section class="layout">
         <article class="panel map-panel">
-          <canvas id="game-canvas" width="576" height="576" aria-label="Dungeon map"></canvas>
-          <div class="controls">
-            <button id="up-btn">↑</button>
+          <canvas id="game-canvas" width="640" height="640" aria-label="Dungeon map"></canvas>
+          <div class="controls" aria-label="mobile controls">
+            <button id="up-btn" aria-label="move up">↑</button>
             <div>
-              <button id="left-btn">←</button>
-              <button id="down-btn">↓</button>
-              <button id="right-btn">→</button>
+              <button id="left-btn" aria-label="move left">←</button>
+              <button id="down-btn" aria-label="move down">↓</button>
+              <button id="right-btn" aria-label="move right">→</button>
             </div>
+            <button id="attack-btn" class="attack" aria-label="attack">SPACE / ATTACK</button>
           </div>
         </article>
 

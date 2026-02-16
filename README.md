@@ -4,8 +4,13 @@ A fully client-side top-down dungeon crawler that can be hosted on any static si
 
 ## Gameplay
 
-- Procedurally generated **dungeon maps** with walls and walkable floors.
-- Player movement with **WASD / Arrow keys** and on-screen controls.
+- Procedurally generated **big dungeon maps** (32x32 tiles).
+- Dungeons are generated as a connected cavern so there is always a walkable path across the explored floor network.
+- Player movement with **Arrow keys** or on-screen arrow controls.
+- **Space** (keyboard) or **SPACE / ATTACK** button for attacks.
+- Mobile/touch support:
+  - Tap a neighboring map tile to move.
+  - Tap attack button to attack adjacent enemies.
 - Exactly **2 warp gates per dungeon**, each linking to another generated dungeon.
 - Multiple smart monster types:
   - **Brute**: direct chaser.

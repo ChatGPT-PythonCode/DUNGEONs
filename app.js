@@ -28,7 +28,7 @@ const MONSTER_TEMPLATES = {
 };
 
 class WorldGenerator {
-  constructor(seed = 2026, size = 18) {
+  constructor(seed = 2026, size = 32) {
     this.seed = seed;
     this.size = size;
     this.cache = new Map();
@@ -45,37 +45,12 @@ class WorldGenerator {
     const rng = new RNG((this.seed + dungeonId * 7919) >>> 0);
     const map = Array.from({ length: this.size }, () => Array(this.size).fill(TILE.WALL));
 
-    const roomCount = rng.int(8, 14);
-    for (let i = 0; i < roomCount; i++) {
-      const rw = rng.int(3, 6);
-      const rh = rng.int(3, 6);
-      const rx = rng.int(1, this.size - rw - 2);
-      const ry = rng.int(1, this.size - rh - 2);
-      for (let y = ry; y < ry + rh; y++) {
-        for (let x = rx; x < rx + rw; x++) map[y][x] = TILE.FLOOR;
-      }
-    }
-
-    for (let y = 1; y < this.size - 1; y++) {
-      for (let x = 1; x < this.size - 1; x++) {
-        if (map[y][x] === TILE.FLOOR && rng.next() < 0.35) {
-          if (map[y][x + 1] === TILE.WALL) map[y][x + 1] = TILE.FLOOR;
-          if (map[y + 1][x] === TILE.WALL) map[y + 1][x] = TILE.FLOOR;
-        }
-      }
-    }
-
-    const floorCells = this.collectCells(map, v => v === TILE.FLOOR);
-    if (floorCells.length < 30) {
-      for (let y = 1; y < this.size - 1; y++) {
-        for (let x = 1; x < this.size - 1; x++) {
-          if (rng.next() < 0.5) map[y][x] = TILE.FLOOR;
-        }
-      }
-    }
+    const start = { x: rng.int(2, this.size - 3), y: rng.int(2, this.size - 3) };
+    this.carveConnectedCavern(map, start, rng);
+    this.removeDisconnectedPockets(map, start);
 
     const walkables = this.collectCells(map, v => v === TILE.FLOOR);
-    const spawn = walkables[rng.int(0, walkables.length - 1)] || { x: 1, y: 1 };
+    const spawn = walkables[rng.int(0, walkables.length - 1)] || start;
 
     const warpAId = dungeonId + rng.int(1, 9);
     let warpBId = rng.next() < 0.35 ? Math.max(0, dungeonId - rng.int(1, 6)) : dungeonId + rng.int(10, 20);
@@ -87,13 +62,14 @@ class WorldGenerator {
     map[warpB.y][warpB.x] = TILE.WARP_B;
 
     const monsters = [];
-    const monsterCount = rng.int(5, 11);
+    const monsterCount = rng.int(14, 24);
     const types = Object.keys(MONSTER_TEMPLATES);
     for (let i = 0; i < monsterCount; i++) {
       const kind = rng.pick(types);
       const base = MONSTER_TEMPLATES[kind];
       const pos = walkables[rng.int(0, walkables.length - 1)];
       if (!pos || (pos.x === spawn.x && pos.y === spawn.y)) continue;
+      if (map[pos.y][pos.x] !== TILE.FLOOR) continue;
       monsters.push({
         id: `${dungeonId}-${i}`,
         kind,
@@ -117,6 +93,83 @@ class WorldGenerator {
         { id: warpBId, x: warpB.x, y: warpB.y, tile: TILE.WARP_B }
       ]
     };
+  }
+
+  carveConnectedCavern(map, start, rng) {
+    let x = start.x;
+    let y = start.y;
+    map[y][x] = TILE.FLOOR;
+
+    const totalCells = (this.size - 2) * (this.size - 2);
+    const targetFloor = Math.floor(totalCells * 0.52);
+    let carved = 1;
+
+    const directions = [
+      { x: 1, y: 0 },
+      { x: -1, y: 0 },
+      { x: 0, y: 1 },
+      { x: 0, y: -1 }
+    ];
+
+    while (carved < targetFloor) {
+      const dir = rng.pick(directions);
+      const nx = Math.max(1, Math.min(this.size - 2, x + dir.x));
+      const ny = Math.max(1, Math.min(this.size - 2, y + dir.y));
+
+      x = nx;
+      y = ny;
+      if (map[y][x] === TILE.WALL) {
+        map[y][x] = TILE.FLOOR;
+        carved += 1;
+      }
+
+      if (rng.next() < 0.08) {
+        const width = rng.int(2, 4);
+        const height = rng.int(2, 4);
+        for (let yy = Math.max(1, y - height); yy <= Math.min(this.size - 2, y + height); yy++) {
+          for (let xx = Math.max(1, x - width); xx <= Math.min(this.size - 2, x + width); xx++) {
+            if (map[yy][xx] === TILE.WALL) {
+              map[yy][xx] = TILE.FLOOR;
+              carved += 1;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  removeDisconnectedPockets(map, spawn) {
+    const reachable = new Set();
+    const queue = [spawn];
+    reachable.add(`${spawn.x},${spawn.y}`);
+    const dirs = [
+      { x: 1, y: 0 },
+      { x: -1, y: 0 },
+      { x: 0, y: 1 },
+      { x: 0, y: -1 }
+    ];
+
+    while (queue.length) {
+      const cell = queue.shift();
+      for (const d of dirs) {
+        const nx = cell.x + d.x;
+        const ny = cell.y + d.y;
+        if (ny < 0 || ny >= map.length || nx < 0 || nx >= map[0].length) continue;
+        if (map[ny][nx] === TILE.WALL) continue;
+        const key = `${nx},${ny}`;
+        if (reachable.has(key)) continue;
+        reachable.add(key);
+        queue.push({ x: nx, y: ny });
+      }
+    }
+
+    for (let y = 0; y < map.length; y++) {
+      for (let x = 0; x < map[0].length; x++) {
+        if (map[y][x] !== TILE.WALL && !reachable.has(`${x},${y}`)) {
+          map[y][x] = TILE.WALL;
+        }
+      }
+    }
   }
 
   collectCells(map, predicate) {
@@ -146,7 +199,7 @@ class WorldGenerator {
 class Game {
   constructor(seed = 2026) {
     this.rng = new RNG(seed);
-    this.world = new WorldGenerator(seed, 18);
+    this.world = new WorldGenerator(seed, 32);
     this.player = {
       hp: 120,
       maxHp: 120,
@@ -193,17 +246,40 @@ class Game {
     }
 
     this.playerPos = { x: nx, y: ny };
-    const tile = this.tileAt(nx, ny);
-    if (tile === TILE.WARP_A || tile === TILE.WARP_B) {
-      const warp = this.dungeon.warps.find(w => w.x === nx && w.y === ny);
-      if (warp) {
-        this.log.unshift(`You used warp gate to dungeon ${warp.id}.`);
-        this.loadDungeon(warp.id);
-        return;
-      }
+    this.handleWarpIfOnTile();
+    this.monsterTurn();
+  }
+
+  attackAction() {
+    if (this.player.hp <= 0) return;
+
+    const candidates = this.dungeon.monsters
+      .filter(m => m.hp > 0)
+      .map(m => ({
+        monster: m,
+        dist: Math.abs(m.x - this.playerPos.x) + Math.abs(m.y - this.playerPos.y)
+      }))
+      .filter(item => item.dist === 1)
+      .sort((a, b) => a.monster.hp - b.monster.hp);
+
+    if (!candidates.length) {
+      this.log.unshift("No monster in range for space attack.");
+      this.monsterTurn();
+      return;
     }
 
+    this.attackMonster(candidates[0].monster);
     this.monsterTurn();
+  }
+
+  handleWarpIfOnTile() {
+    const tile = this.tileAt(this.playerPos.x, this.playerPos.y);
+    if (tile !== TILE.WARP_A && tile !== TILE.WARP_B) return;
+    const warp = this.dungeon.warps.find(w => w.x === this.playerPos.x && w.y === this.playerPos.y);
+    if (warp) {
+      this.log.unshift(`You used warp gate to dungeon ${warp.id}.`);
+      this.loadDungeon(warp.id);
+    }
   }
 
   monsterAt(x, y) {
@@ -316,6 +392,7 @@ const statsEl = document.getElementById("player-stats");
 const dungeonEl = document.getElementById("dungeon-card");
 const logEl = document.getElementById("log");
 const game = new Game(2026);
+window.__game = game;
 
 function draw() {
   const { map, size, monsters } = game.dungeon;
@@ -360,10 +437,11 @@ function renderInfo() {
   const [warpA, warpB] = game.dungeon.warps;
   dungeonEl.innerHTML = `
     <h2>Dungeon ${game.dungeon.id}</h2>
+    <p><strong>Size:</strong> ${game.dungeon.size} x ${game.dungeon.size}</p>
     <p><strong>Monsters:</strong> ${game.dungeon.monsters.length}</p>
     <p><strong>Warp A:</strong> ${warpA.id} (${warpA.x},${warpA.y})</p>
     <p><strong>Warp B:</strong> ${warpB.id} (${warpB.x},${warpB.y})</p>
-    <p class="subtle">Stand on a warp tile to travel.</p>
+    <p class="subtle">Arrow keys move. Space attacks adjacent enemy.</p>
   `;
 
   logEl.innerHTML = game.log.slice(0, 24).map(line => `<li>${line}</li>`).join("");
@@ -379,20 +457,47 @@ function moveByInput(dx, dy) {
   renderAll();
 }
 
+function attackByInput() {
+  game.attackAction();
+  renderAll();
+}
+
+function handleMapTouch(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const tileSize = rect.width / game.dungeon.size;
+  const tx = Math.floor((clientX - rect.left) / tileSize);
+  const ty = Math.floor((clientY - rect.top) / tileSize);
+  const dx = tx - game.playerPos.x;
+  const dy = ty - game.playerPos.y;
+
+  if (Math.abs(dx) + Math.abs(dy) !== 1) return;
+  if (game.monsterAt(tx, ty)) {
+    attackByInput();
+    return;
+  }
+  moveByInput(dx, dy);
+}
+
 document.getElementById("up-btn").addEventListener("click", () => moveByInput(0, -1));
 document.getElementById("down-btn").addEventListener("click", () => moveByInput(0, 1));
 document.getElementById("left-btn").addEventListener("click", () => moveByInput(-1, 0));
 document.getElementById("right-btn").addEventListener("click", () => moveByInput(1, 0));
+document.getElementById("attack-btn").addEventListener("click", attackByInput);
 
 document.addEventListener("keydown", event => {
   const key = event.key.toLowerCase();
-  if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d"].includes(key)) {
+  if (["arrowup", "arrowdown", "arrowleft", "arrowright", " ", "space", "w", "a", "s", "d"].includes(key)) {
     event.preventDefault();
   }
   if (key === "arrowup" || key === "w") moveByInput(0, -1);
   if (key === "arrowdown" || key === "s") moveByInput(0, 1);
   if (key === "arrowleft" || key === "a") moveByInput(-1, 0);
   if (key === "arrowright" || key === "d") moveByInput(1, 0);
+  if (key === " " || key === "space") attackByInput();
+});
+
+canvas.addEventListener("pointerdown", event => {
+  handleMapTouch(event.clientX, event.clientY);
 });
 
 renderAll();
