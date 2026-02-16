@@ -1,0 +1,89 @@
+:root {
+  color-scheme: dark;
+  --bg: #0e1117;
+  --panel: #161b22;
+  --muted: #8b949e;
+  --text: #e6edf3;
+  --accent: #58a6ff;
+  --good: #3fb950;
+  --danger: #ff7b72;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: radial-gradient(circle at top, #1c2638, var(--bg));
+  color: var(--text);
+}
+
+.app {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 1.25rem;
+}
+
+header,
+.stats,
+.dungeon,
+.actions,
+section {
+  background: color-mix(in srgb, var(--panel) 96%, black);
+  border: 1px solid #2f3640;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+h1, h2 {
+  margin-top: 0;
+}
+
+.subtle {
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+button {
+  border: 1px solid #3d444d;
+  background: #21262d;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: var(--accent);
+}
+
+.pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pill {
+  background: #263041;
+  border: 1px solid #3e4d64;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+ul {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.good { color: var(--good); }
+.danger { color: var(--danger); }
