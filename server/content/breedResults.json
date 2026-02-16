@@ -1,0 +1,4 @@
+[
+  { "parentA": "sproutling", "parentB": "embercub", "results": [{"speciesId":"zephyroo", "weight": 100}] },
+  { "parentA": "mossback", "parentB": "zephyroo", "results": [{"speciesId":"sproutling", "weight": 100}] }
+]

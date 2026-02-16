@@ -1,64 +1,43 @@
-# Never-Ending Dungeon Explorer (Top-Down Static Web Game)
+# DUNGEONs Multiplayer Monster Collection MVP
 
-A fully client-side top-down dungeon crawler that can be hosted on any static site provider.
+PWA-first monorepo with server-authoritative gameplay.
 
-## Gameplay
+## Structure
 
-- Procedurally generated **large dungeon maps** (36x36 tiles).
-- More dungeon-like generation:
-  - rectangular rooms,
-  - narrow corridors,
-  - branch passages for exploration.
-- Connectivity guarantee: generated floor space is flood-fill connected so reachable areas stay traversable.
-- Player controls:
-  - **Arrow keys** or on-screen arrows for movement,
-  - **Space** or **SPACE / ATTACK** for attack,
-  - **Shift** or **SHIFT / ESCAPE** for evasive repositioning.
-- Mobile/touch support:
-  - tap adjacent map tile to move,
-  - tap adjacent monster tile + attack button to fight,
-  - touch-friendly controls.
-- Exactly **2 warp gates per dungeon**, each linking to another generated dungeon.
-- Smarter monster behavior:
-  - stateful aggro/search logic,
-  - crowd-aware movement so they don’t all stack behind the player,
-  - flanking/chasing by monster type.
-- Player progression:
-  - XP and leveling,
-  - stat growth (HP/ATK),
-  - power-up skills (Power Strike, Blink, Arc Burst, Battle Trance, Regeneration).
-- Procedurally generated **big dungeon maps** (32x32 tiles).
-- Dungeons are generated as a connected cavern so there is always a walkable path across the explored floor network.
-- Player movement with **Arrow keys** or on-screen arrow controls.
-- **Space** (keyboard) or **SPACE / ATTACK** button for attacks.
-- Mobile/touch support:
-  - Tap a neighboring map tile to move.
-  - Tap attack button to attack adjacent enemies.
-- Exactly **2 warp gates per dungeon**, each linking to another generated dungeon.
-- Multiple smart monster types:
-  - **Brute**: direct chaser.
-  - **Rogue**: flank behavior.
-  - **Stalker**: flank at range, chase at close distance.
-- Turn-based combat while moving through the map.
-- Player progression:
-  - XP and leveling.
-  - Stat growth (HP/ATK).
-  - Power-up skills (Power Strike, Blink, Arc Burst, Battle Trance, Regeneration).
+- `client` - React + Vite mobile-first UI and Canvas symbol rendering.
+- `server` - Express + Socket.IO API with deterministic game logic modules.
+- `shared` - Shared zod schemas/constants for request validation.
 
-## Run locally
+## Core implemented systems
 
-```bash
-python -m http.server 4173
-```
+- Auth (`/auth/register`, `/auth/login`) with JWT.
+- New player grants 10 meat and chooses a common starter.
+- Areas and exploration encounters with weighted spawn tables.
+- Server-authoritative battle simulator and EXP leveling.
+- Taming formula using base difficulty + meat + hp percentage.
+- Stat allocation with server-side point budget enforcement.
+- Breeding with data-driven breed table (`content/breedResults.json`) and lineage tracking.
+- On-demand tournaments (run when 4 entries queue), server simulated bracket, meat+badge rewards.
+- Realtime area presence and tournament status over Socket.IO.
+- Data-driven content pipeline (`server/content/*.json`) for adding new monster species/areas.
 
-Open `http://localhost:4173`.
+## Quick start
 
-## Static hosting
+1. Create PostgreSQL DB and set env vars:
+   - `DATABASE_URL=postgresql://...`
+   - `JWT_SECRET=...`
+2. Install:
+   - `npm install`
+3. Generate Prisma client and migrate:
+   - `npm run prisma:generate -w server`
+   - `npx prisma migrate dev --schema server/prisma/schema.prisma`
+4. Seed content:
+   - `npm run seed`
+5. Run:
+   - `npm run dev`
 
-Deploy these files directly with no build step:
+## Multiplayer events
 
-- `index.html`
-- `styles.css`
-- `app.js`
+- `area:join`, `area:leave`, `area:presence_update`
+- `tournament:status`, `tournament:match_result`
 
-Compatible with GitHub Pages, Netlify, Cloudflare Pages, and Vercel static hosting.

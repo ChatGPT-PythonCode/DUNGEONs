@@ -1,0 +1,26 @@
+[
+  {
+    "id": "verdant-plains",
+    "name": "Verdant Plains",
+    "biomeTag": "grassland",
+    "levelRangeMin": 1,
+    "levelRangeMax": 5,
+    "encounterTable": [
+      { "speciesId": "sproutling", "weight": 45 },
+      { "speciesId": "mossback", "weight": 35 },
+      { "speciesId": "zephyroo", "weight": 20 }
+    ]
+  },
+  {
+    "id": "ember-cave",
+    "name": "Ember Cave",
+    "biomeTag": "volcanic",
+    "levelRangeMin": 3,
+    "levelRangeMax": 8,
+    "encounterTable": [
+      { "speciesId": "embercub", "weight": 60 },
+      { "speciesId": "sproutling", "weight": 20 },
+      { "speciesId": "zephyroo", "weight": 20 }
+    ]
+  }
+]
