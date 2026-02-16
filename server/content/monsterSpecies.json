@@ -1,0 +1,38 @@
+[
+  {
+    "id": "sproutling",
+    "name": "Sproutling",
+    "rarity": "common",
+    "baseStats": { "atk": 8, "def": 6, "spd": 7, "hp": 32 },
+    "growth": { "atk": 2, "def": 2, "spd": 2, "hp": 6 },
+    "renderSeed": "seed-sproutling",
+    "tameDifficulty": 0.35
+  },
+  {
+    "id": "embercub",
+    "name": "Embercub",
+    "rarity": "common",
+    "baseStats": { "atk": 10, "def": 5, "spd": 6, "hp": 30 },
+    "growth": { "atk": 3, "def": 1, "spd": 2, "hp": 5 },
+    "renderSeed": "seed-embercub",
+    "tameDifficulty": 0.45
+  },
+  {
+    "id": "mossback",
+    "name": "Mossback",
+    "rarity": "common",
+    "baseStats": { "atk": 6, "def": 9, "spd": 4, "hp": 38 },
+    "growth": { "atk": 1, "def": 3, "spd": 1, "hp": 7 },
+    "renderSeed": "seed-mossback",
+    "tameDifficulty": 0.3
+  },
+  {
+    "id": "zephyroo",
+    "name": "Zephyroo",
+    "rarity": "common",
+    "baseStats": { "atk": 7, "def": 5, "spd": 10, "hp": 28 },
+    "growth": { "atk": 2, "def": 1, "spd": 3, "hp": 4 },
+    "renderSeed": "seed-zephyroo",
+    "tameDifficulty": 0.4
+  }
+]
